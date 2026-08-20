@@ -1,3 +1,8 @@
+﻿relay-windows-x64.exe
+relay-linux-x64
+relay-linux-arm64
 *.exe
-relay-linux-*
 *.bak
+*.tmp
+.DS_Store
+node_modules/
