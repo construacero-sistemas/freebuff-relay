@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: freebuff-relay
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: "8787"
+      - key: UPSTREAM
+        value: "https://www.codebuff.com"

@@ -1,0 +1,20 @@
+[Unit]
+Description=Freebuff Transparent Relay Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/freebuff-relay
+ExecStart=/opt/freebuff-relay/relay-linux
+Restart=always
+RestartSec=5
+Environment=PORT=8787
+Environment=UPSTREAM=https://www.codebuff.com
+
+# Standard logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
