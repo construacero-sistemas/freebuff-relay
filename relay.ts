@@ -1,8 +1,9 @@
 // relay.ts - Transparent, host-agnostic Relay for Freebuff
 // Strips Cloudflare Worker signatures (CF-Worker, CF-Ray, etc.) and edge headers.
 
-const PORT = parseInt(process.env.PORT || Bun.env.PORT || '8787', 10);
+const PORT = parseInt(process.env.PORT || Bun.env.PORT || '8789', 10);
 const UPSTREAM = (process.env.UPSTREAM || Bun.env.UPSTREAM || 'https://www.codebuff.com').replace(/\/+$/, '');
+const EGRESS_PROXY = process.env.EGRESS_PROXY || Bun.env.EGRESS_PROXY || 'http://127.0.0.1:9080';
 const upstreamHost = new URL(UPSTREAM).host;
 
 // Headers that must NOT be forwarded upstream
@@ -49,6 +50,7 @@ function shouldStripResponseHeader(name: string): boolean {
 
 console.log(`[Relay] Freebuff Transparent Relay starting...`);
 console.log(`[Relay] Target Upstream: ${UPSTREAM} (Host: ${upstreamHost})`);
+console.log(`[Relay] Egress Proxy: ${EGRESS_PROXY || 'Direct'}`);
 console.log(`[Relay] Port: ${PORT}`);
 
 Bun.serve({
@@ -57,9 +59,9 @@ Bun.serve({
     const startTime = Date.now();
     const reqUrl = new URL(req.url);
 
-    // Health check endpoint for uptime monitors and keep-alives
-    if (req.method === 'GET' && reqUrl.pathname === '/healthz') {
-      return new Response(JSON.stringify({ ok: true, uptime: process.uptime(), timestamp: new Date().toISOString() }), {
+    // Health check endpoint for uptime monitors, keep-alives and Freebuff checkConnection()
+    if (req.method === 'GET' && (reqUrl.pathname === '/healthz' || reqUrl.pathname === '/api/healthz')) {
+      return new Response(JSON.stringify({ status: 'ok', ok: true, uptime: process.uptime(), timestamp: new Date().toISOString() }), {
         status: 200,
         headers: {
           'content-type': 'application/json',
@@ -93,6 +95,7 @@ Bun.serve({
         // @ts-ignore - duplex is required for fetch with stream body
         duplex: hasBody ? 'half' : undefined,
         redirect: 'manual',
+        proxy: EGRESS_PROXY || undefined,
       });
 
       // Filter response headers
