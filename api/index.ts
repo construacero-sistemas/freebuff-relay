@@ -1,6 +1,9 @@
 export const config = {
   runtime: 'edge',
+  regions: ['iad1'], // US-East (Washington D.C. / AWS us-east-1 nearest to Codebuff)
 };
+
+export const maxDuration = 60; // Max execution timeout for heavy reasoning models
 
 const UPSTREAM = 'https://www.codebuff.com';
 const upstreamHost = 'www.codebuff.com';
@@ -37,9 +40,17 @@ const STRIP_RESPONSE_HEADERS = new Set([
 export default async function handler(req: Request) {
   const url = new URL(req.url);
 
-  // Health checks
-  if (req.method === 'GET' && (url.pathname === '/healthz' || url.pathname === '/api/healthz' || url.pathname === '/')) {
-    return new Response(JSON.stringify({ status: 'ok', ok: true, platform: 'vercel-edge', timestamp: new Date().toISOString() }), {
+  // 1. Instant Health & Reachability checks (GET & HEAD)
+  if ((req.method === 'GET' || req.method === 'HEAD') && 
+      (url.pathname === '/healthz' || url.pathname === '/api/healthz' || url.pathname === '/')) {
+    return new Response(JSON.stringify({ 
+      status: 'ok', 
+      ok: true, 
+      platform: 'vercel-edge-optimized',
+      region: 'iad1-us-east',
+      maxDuration: 60,
+      timestamp: new Date().toISOString() 
+    }), {
       status: 200,
       headers: { 
         'content-type': 'application/json',
@@ -48,6 +59,7 @@ export default async function handler(req: Request) {
     });
   }
 
+  // 2. Prepare target upstream URL
   const targetUrl = new URL(url.pathname + url.search, UPSTREAM);
   const headers = new Headers();
   headers.set('host', upstreamHost);
@@ -77,6 +89,10 @@ export default async function handler(req: Request) {
         respHeaders.set(k, v);
       }
     }
+
+    // Disable proxy buffering so SSE tokens stream instantly to Freebuff client
+    respHeaders.set('X-Accel-Buffering', 'no');
+    respHeaders.set('Cache-Control', 'no-cache, no-transform');
 
     return new Response(upstreamResp.body, {
       status: upstreamResp.status,
