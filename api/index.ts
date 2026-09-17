@@ -1,4 +1,9 @@
-export const maxDuration = 300;
+export const config = {
+  runtime: 'edge',
+  regions: ['iad1'], // US-East (Washington D.C. / AWS us-east-1 nearest to Codebuff)
+};
+
+export const maxDuration = 60; // Max execution timeout for heavy reasoning models
 
 const UPSTREAM = 'https://www.codebuff.com';
 const upstreamHost = 'www.codebuff.com';
@@ -41,8 +46,9 @@ export default async function handler(req: Request) {
     return new Response(JSON.stringify({ 
       status: 'ok', 
       ok: true, 
-      platform: 'vercel-nodejs-300s',
-      maxDuration: 300,
+      platform: 'vercel-edge-optimized',
+      region: 'iad1-us-east',
+      maxDuration: 60,
       timestamp: new Date().toISOString() 
     }), {
       status: 200,
